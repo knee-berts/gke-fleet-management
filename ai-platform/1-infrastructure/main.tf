@@ -48,13 +48,20 @@ data "google_compute_network" "network" {
   depends_on = [google_project_service.default]
 }
 
-resource "google_compute_subnetwork" "proxy" {
-  name          = "proxy-subnetwork"
-  ip_cidr_range = "10.4.0.0/22"
-  region        = local.hub_cluster_location
+locals {
+  # logical concatenation of management and worker regions
+  all_regions = sort(distinct(concat([var.region], var.worker_regions)))
+}
+
+resource "google_compute_subnetwork" "proxy_subnets" {
+  for_each = { for idx, r in local.all_regions : r => idx }
+
+  name          = "proxy-subnet-${each.key}"
+  region        = each.key
+  network       = data.google_compute_network.network.id
+  ip_cidr_range = cidrsubnet("10.4.0.0/16", 7, each.value)
   purpose       = "GLOBAL_MANAGED_PROXY"
   role          = "ACTIVE"
-  network       = data.google_compute_network.network.id
   project       = var.project_id
 }
 
