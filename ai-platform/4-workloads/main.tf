@@ -1,7 +1,5 @@
 # [START gke_multi_cluster_inference_gateway_workload]
-locals {
-  hf_api_token = "REPLACE_WITH_YOUR_HF_API_TOKEN"
-}
+# locals block removed
 
 data "google_client_config" "default" {}
 
@@ -24,22 +22,28 @@ provider "helm" {
   }
 }
 
-resource "helm_release" "gemma-vllm-application" {
+# Fetch worker cluster details from infrastructure state
+data "terraform_remote_state" "infra" {
+  backend = "local"
+  config = {
+    path = "../1-infrastructure/terraform.tfstate"
+  }
+}
+
+locals {
+  workers = data.terraform_remote_state.infra.outputs.worker_clusters
+}
+
+# Hub deployment (Gateway API configs)
+resource "helm_release" "gemma-app-hub" {
   name  = "gemma-vllm-application"
   chart = "./charts/gemma-vllm-application"
 
   namespace        = "gemma-server"
   version          = "0.1.3"
-  wait             = false
+  wait             = true
   create_namespace = true
-  lint             = true
-
-  set_sensitive = [
-    {
-      name  = "hf_api_token"
-      value = local.hf_api_token
-    }
-  ]
+  
   set = [
     {
       name  = "clusters_prefix"
@@ -48,6 +52,63 @@ resource "helm_release" "gemma-vllm-application" {
     {
       name  = "gemma-server.enabled"
       value = "false"
+    }
+  ]
+  
+  set_sensitive = [
+    {
+      name  = "hf_api_token"
+      value = var.hf_api_token
+    }
+  ]
+}
+
+# Worker 0 Provider & Release (Workload)
+provider "helm" {
+  alias = "worker0"
+  kubernetes = {
+    host                   = "https://${local.workers[0].endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(local.workers[0].ca_cert)
+  }
+}
+
+resource "helm_release" "gemma-server-worker0" {
+  provider         = helm.worker0
+  name             = "gemma-server"
+  chart            = "../../fleet-charts/gemma-server"
+  namespace        = "gemma-server"
+  create_namespace = true
+  
+  set_sensitive = [
+    {
+      name  = "hf_api_token"
+      value = var.hf_api_token
+    }
+  ]
+}
+
+# Worker 1 Provider & Release (Workload)
+provider "helm" {
+  alias = "worker1"
+  kubernetes = {
+    host                   = "https://${local.workers[1].endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(local.workers[1].ca_cert)
+  }
+}
+
+resource "helm_release" "gemma-server-worker1" {
+  provider         = helm.worker1
+  name             = "gemma-server"
+  chart            = "../../fleet-charts/gemma-server"
+  namespace        = "gemma-server"
+  create_namespace = true
+
+  set_sensitive = [
+    {
+      name  = "hf_api_token"
+      value = var.hf_api_token
     }
   ]
 }

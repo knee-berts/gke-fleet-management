@@ -14,11 +14,8 @@
 * limitations under the License.
 */
 
-# [START gke_multi_cluster_inference_gateway_workload]
-locals {
-  hf_api_token = "REPLACE_WITH_YOUR_HF_API_TOKEN"
-}
 
+# [START gke_multi_cluster_inference_gateway_workload]
 data "google_client_config" "default" {}
 
 provider "google" {
@@ -40,27 +37,89 @@ provider "helm" {
   }
 }
 
-resource "helm_release" "gemma-vllm-application" {
-  name  = "gemma-vllm-application"
-  chart = "./charts/gemma-vllm-application"
+locals {
+  workers = data.terraform_remote_state.infra.outputs.worker_clusters
+  
+  # distinct regions including Hub and Workers
+  all_regions = distinct(concat(
+    [var.region],
+    [for c in local.workers : c.location]
+  ))
 
-  namespace        = "gemma-server"
-  version          = "0.1.0"
-  wait             = false
-  create_namespace = true
-  lint             = true
-
-  set_sensitive = [
-    {
-      name  = "hf_api_token"
-      value = local.hf_api_token
-    }
-  ]
-  set = [
-    {
-      name  = "clusters_prefix"
-      value = "worker-cluster"
+  gateway_addresses = [
+    for r in local.all_regions : {
+      type  = "networking.gke.io/ephemeral-ipv4-address/${r}"
+      value = r
     }
   ]
 }
+
+resource "helm_release" "gateway_infrastructure" {
+  name  = "gateway-infrastructure"
+  chart = "../../fleet-charts/multi-cluster-inference-gateway"
+
+  namespace        = "gateway-system"
+  create_namespace = true
+  
+  values = [
+    yamlencode({
+      gateway = {
+        name = "gemma-server-gateway"
+        addresses = local.gateway_addresses
+      }
+    })
+  ]
+}
 # [END gke_multi_cluster_inference_gateway_workload]
+
+data "terraform_remote_state" "infra" {
+  backend = "local"
+  config = {
+    path = "../1-infrastructure/terraform.tfstate"
+  }
+}
+
+
+# Install CRD on Hub
+resource "helm_release" "inference_crd_hub" {
+  name      = "inference-crd"
+  chart     = "./charts/inference-crd"
+  namespace        = "inference-system"
+  create_namespace = true
+}
+
+# Worker 0 Provider & Release
+provider "helm" {
+  alias = "worker0"
+  kubernetes = {
+    host                   = "https://${local.workers[0].endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(local.workers[0].ca_cert)
+  }
+}
+
+resource "helm_release" "inference_crd_worker0" {
+  provider  = helm.worker0
+  name      = "inference-crd"
+  chart     = "./charts/inference-crd"
+  namespace        = "inference-system"
+  create_namespace = true
+}
+
+# Worker 1 Provider & Release
+provider "helm" {
+  alias = "worker1"
+  kubernetes = {
+    host                   = "https://${local.workers[1].endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(local.workers[1].ca_cert)
+  }
+}
+
+resource "helm_release" "inference_crd_worker1" {
+  provider  = helm.worker1
+  name      = "inference-crd"
+  chart     = "./charts/inference-crd"
+  namespace        = "inference-system"
+  create_namespace = true
+}

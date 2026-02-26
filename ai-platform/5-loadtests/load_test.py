@@ -125,6 +125,21 @@ def main():
         print(f"✓ Warmup successful ({lat:.2f} ms)")
     else:
         print(f"✗ Warmup failed. Aborting load test.")
+        # Re-run to see error
+        try:
+            req = urllib.request.Request(
+                f"{args.url}/v1/chat/completions", 
+                data=json.dumps({"model": args.model, "messages": [{"role": "user", "content": "test"}]}).encode('utf-8'), 
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                print(f"DEBUG: Response status: {response.status}")
+                print(f"DEBUG: Response body: {response.read()}")
+        except Exception as e:
+            print(f"DEBUG: Connection Error: {e}")
+            if hasattr(e, 'read'):
+                print(f"DEBUG: Error Body: {e.read()}")
+            
         sys.exit(1)
 
     # Load Test

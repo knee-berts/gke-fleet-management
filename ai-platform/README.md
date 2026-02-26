@@ -45,3 +45,20 @@ This directory contains a unified demonstration of **Multikueue** and **Multi-Cl
     terraform init
     terraform apply
     ```
+
+4.  **Workloads**:
+    ```bash
+    cd ../4-workloads
+    terraform init
+    terraform apply
+    ```
+
+## Cleanup
+
+To tear down all resources and restore the project to a clean state, run the provided cleanup script:
+
+```bash
+./cleanup.sh
+```
+
+This script will prompt for confirmation and destroy Terraform resources in the correct reverse dependency order.

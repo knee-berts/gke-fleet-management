@@ -86,17 +86,4 @@ module "kueue_worker_1" {
   providers     = { helm = helm.worker1 }
 }
 
-provider "helm" {
-  alias = "worker2"
-  kubernetes = {
-    host                   = "https://${local.workers[2].endpoint}"
-    token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(local.workers[2].ca_cert)
-  }
-}
 
-module "kueue_worker_2" {
-  source        = "./modules/kueue"
-  kueue_version = local.kueue_version
-  providers     = { helm = helm.worker2 }
-}

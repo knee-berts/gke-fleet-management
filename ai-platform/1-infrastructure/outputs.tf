@@ -18,6 +18,7 @@ output "worker_clusters" {
     for c in google_container_cluster.worker_clusters : {
       endpoint = c.endpoint
       ca_cert  = c.master_auth[0].cluster_ca_certificate
+      location = c.location
     }
   ]
   sensitive = true

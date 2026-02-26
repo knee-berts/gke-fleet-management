@@ -8,3 +8,9 @@ variable "region" {
   type        = string
   default     = "us-central1"
 }
+
+variable "hf_api_token" {
+  description = "Hugging Face API Token for accessing gated models"
+  type        = string
+  sensitive   = true
+}
