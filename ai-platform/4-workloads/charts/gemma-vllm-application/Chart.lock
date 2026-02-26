@@ -1,0 +1,6 @@
+dependencies:
+- name: gemma-server
+  repository: file://../../../../fleet-charts/gemma-server
+  version: 0.0.5
+digest: sha256:619e64fb27721fdbd37dde4b35e378abf679aca8232f2ba81dd7fa6e9b0af57d
+generated: "2026-02-26T09:06:01.077215-05:00"
