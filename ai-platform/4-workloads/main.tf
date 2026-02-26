@@ -9,7 +9,7 @@ provider "google" {
 }
 
 data "google_container_cluster" "hub" {
-  name     = "management-cluster"
+  name     = "ai-management-cluster"
   location = var.region
   project  = var.project_id
 }
@@ -40,7 +40,7 @@ resource "helm_release" "gemma-app-hub" {
   chart = "./charts/gemma-vllm-application"
 
   namespace        = "gemma-server"
-  version          = "0.1.3"
+  version          = "0.1.9"
   wait             = true
   create_namespace = true
   

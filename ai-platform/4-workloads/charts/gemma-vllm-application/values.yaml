@@ -20,3 +20,12 @@ gemma-server:
 
 gateway_class: "gke-l7-cross-regional-internal-managed-mc"
 # preferred_region: "us-east1"
+
+# To override the accelerator type (e.g. use T4 instead of L4):
+# gemma-server:
+#   accelerator: "nvidia-tesla-t4"
+#
+# To change the model weight (impacts GPU count/size):
+# gemma-server:
+#   weight: "12b" # Requires 2 GPUs (L4)
+#   accelerator: "nvidia-l4"

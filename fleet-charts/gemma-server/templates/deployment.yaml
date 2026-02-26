@@ -150,3 +150,7 @@ spec:
       nodeSelector:
         cloud.google.com/gke-accelerator: "{{ .Values.accelerator }}"
         cloud.google.com/gke-gpu-driver-version: latest
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

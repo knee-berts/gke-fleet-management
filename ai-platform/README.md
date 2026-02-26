@@ -50,6 +50,7 @@ This directory contains a unified demonstration of **Multikueue** and **Multi-Cl
     ```bash
     cd ../4-workloads
     terraform init
+    export TF_VAR_hf_api_token="YOUR_hf_..._TOKEN"
     terraform apply
     ```
 
@@ -61,4 +62,19 @@ To tear down all resources and restore the project to a clean state, run the pro
 ./cleanup.sh
 ```
 
-This script will prompt for confirmation and destroy Terraform resources in the correct reverse dependency order.
+./cleanup.sh
+```
+
+## Known Issues
+
+### Multi-Cluster Inference Gateway (MCIGW) - InferencePool
+
+The `InferencePool` resource is currently not functioning as expected due to a missing `inference-picker` component in the provided samples.
+
+- **Symptom**: Load tests fail with `500 Internal Server Error`, and the `InferencePool` status shows no endpoints.
+- **Cause**: The `InferencePool` relies on an `endpointPickerRef` to select backend endpoints. The `inference-picker` deployment included in the sample uses a placeholder image (`gcr.io/google-samples/hello-app:1.0`), which lacks the necessary logic to populate the pool.
+- **Investigation**:
+  - The `InferencePool` CRD exists and is valid.
+  - The `inference-picker` source code is not present in the `multi-cluster-orchestrator` repository.
+  - The upstream `gateway-api-inference-extension` repository contains the `epp` (Endpoint Picker Plugin) source, but it requires a complex build and configuration (likely including sidecars) that is not documented in the sample.
+- **Resolution**: Configured `inference-picker` to use the upstream `epp` staging image and injected a `ConfigMap` with the required `EndpointPickerConfig`.

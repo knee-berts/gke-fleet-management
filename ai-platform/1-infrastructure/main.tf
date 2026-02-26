@@ -65,6 +65,16 @@ resource "google_compute_subnetwork" "proxy_subnets" {
   project       = var.project_id
 }
 
+resource "google_compute_subnetwork" "management_subnet_mirror" {
+  for_each = setsubtract(toset(var.worker_regions), [var.region])
+
+  name          = "management-subnet"
+  region        = each.value
+  network       = data.google_compute_network.network.id
+  ip_cidr_range = cidrsubnet("10.100.0.0/16", 8, index(var.worker_regions, each.value))
+  project       = var.project_id
+}
+
 ### Cluster Service Accounts
 resource "google_service_account" "clusters" {
   for_each = toset([
@@ -106,7 +116,7 @@ resource "google_project_iam_member" "clusters" {
 
 ### Hub Cluster
 resource "google_container_cluster" "management_cluster" {
-  name             = "management-cluster"
+  name             = "ai-management-cluster"
   location         = local.hub_cluster_location
   enable_autopilot = true
   project          = var.project_id
@@ -157,7 +167,7 @@ resource "google_container_cluster" "management_cluster" {
 resource "google_container_cluster" "worker_clusters" {
   for_each = toset(var.worker_regions)
 
-  name     = "worker-cluster-${each.value}"
+  name     = "ai-worker-${each.value}"
   location = each.value
   project  = var.project_id
 
@@ -206,6 +216,10 @@ resource "google_container_cluster" "worker_clusters" {
   deletion_protection = false
 
   depends_on = [google_project_service.default, google_project_iam_member.clusters]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # L4 GPU Node Pool (from MCO)
@@ -222,7 +236,7 @@ resource "google_container_node_pool" "l4_gpu_pool" {
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     guest_accelerator {
       type  = "nvidia-l4"
-      count = 1
+      count = 2
       gpu_driver_installation_config {
         gpu_driver_version = "LATEST"
       }
@@ -231,7 +245,7 @@ resource "google_container_node_pool" "l4_gpu_pool" {
   }
 
   autoscaling {
-    total_min_node_count = 1
+    total_min_node_count = 2
     total_max_node_count = 3
   }
 }

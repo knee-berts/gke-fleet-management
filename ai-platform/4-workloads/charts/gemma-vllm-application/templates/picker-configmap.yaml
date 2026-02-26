@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-picker
+  namespace: gemma-server
+  labels:
+    app: inference-picker
+data:
+  plugins.yaml: |
+    apiVersion: inference.networking.x-k8s.io/v1alpha1
+    kind: EndpointPickerConfig
+    plugins:
+    - type: random-picker
+    schedulingProfiles:
+    - name: default
+      plugins:
+      - pluginRef: random-picker

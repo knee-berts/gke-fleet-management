@@ -19,3 +19,12 @@ image: "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-v
 accelerator: "nvidia-l4"
 minReplicas: 1
 maxReplicas: 3
+
+tolerations:
+- key: "nvidia.com/gpu"
+  operator: "Exists"
+  effect: "NoSchedule"
+- key: "on-demand"
+  value: "true"
+  operator: "Equal"
+  effect: "NoSchedule"

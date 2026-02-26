@@ -24,7 +24,7 @@ provider "google" {
 }
 
 data "google_container_cluster" "hub" {
-  name     = "management-cluster"
+  name     = "ai-management-cluster"
   location = var.region
   project  = var.project_id
 }

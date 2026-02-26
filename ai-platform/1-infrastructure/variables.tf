@@ -12,7 +12,7 @@ variable "region" {
 variable "worker_regions" {
   description = "List of regions to deploy worker clusters in"
   type        = list(string)
-  default     = ["us-west1", "us-east1"]
+  default     = ["us-central1", "us-east4"]
 }
 
 variable "argocd_version" {

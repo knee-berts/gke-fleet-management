@@ -11,6 +11,6 @@ spec:
     name: inference-picker
     kind: Service
     port:
-      number: 8080
+      number: 9002
   targetPorts:
   - number: 8000
