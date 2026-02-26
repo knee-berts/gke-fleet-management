@@ -18,7 +18,6 @@ gemma-server:
   enabled: true
   weight: "1b"
 
-gateway_class: "gke-l7-cross-regional-internal-managed-mc"
 # preferred_region: "us-east1"
 
 # To override the accelerator type (e.g. use T4 instead of L4):
